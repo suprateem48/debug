@@ -32,6 +32,8 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
+"""
+# INCEPTION_V3
 X_train = preprocess_input(X_train)
 inception = InceptionV3(weights='imagenet', include_top=False, input_shape=(299,299,3))
 inception.trainable = False
@@ -58,6 +60,7 @@ epochs = 100
 model.fit(x=X_train, y=y_train, shuffle=True, validation_split=0.2, epochs=epochs, 
 	batch_size=batch_size, verbose=1, callbacks=[checkpoint, stopper])
 
+"""
 
 """
 # NASNET
@@ -83,7 +86,6 @@ model.fit(X_train, y_train, shuffle=True, validation_split=0.2, epochs=epochs,
 	batch_size=batch_size, verbose=1, callbacks=[checkpoint, stopper])
 """
 
-"""
 # CUSTOM
 
 model = Sequential()
@@ -94,18 +96,22 @@ model.add(Activation('relu'))
 model.add(Conv2D(filters=256, kernel_size=3, padding="valid"))
 model.add(MaxPooling2D(pool_size=(3,3)))
 model.add(Activation('relu'))
-model.add(Dropout(0.2))
+model.add(Dropout(0.25))
 
 model.add(Flatten())
-model.add(Dense(128))
+model.add(Dense(512))
 model.add(Dropout(0.25))
 
 model.add(Activation('relu'))
 model.add(Dense(1))
 
-model.compile(loss = 'mse', optimizer = 'adam')
-model.fit(X_train, y_train, validation_split = 0.2, shuffle = True, epochs = 20)
-"""
+checkpoint = ModelCheckpoint(filepath="./ckpts/model.ckpt", monitor='val_loss', save_best_only=True)
+stopper = EarlyStopping(monitor='val_acc', min_delta=0.0003, patience = 10)
+
+model.compile(loss = 'mse', optimizer = 'Adam', metrics=['accuracy'])
+model.fit(X_train, y_train, validation_split = 0.2, shuffle = True, 
+			epochs = 100, callbacks=[checkpoint, stopper])
+
 
 
 model.save('model.h5')
