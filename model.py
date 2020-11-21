@@ -20,8 +20,8 @@ for line in lines:
 X_train = np.array(images)
 y_train = np.array(measurements)
 
-#print(X_train.shape)
-#print(y_train.shape)
+print(X_train.shape)
+print(y_train.shape)
 
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense, Flatten, Conv2D, Activation, MaxPooling2D, Dropout, GlobalAveragePooling2D
@@ -35,6 +35,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import Huber
+from tensorflow.keras.optimizers.schedules import ExponentialDecay
 
 """
 # INCEPTION_V3
@@ -126,7 +127,9 @@ model.add(Dense(1))
 checkpoint = ModelCheckpoint(filepath="./ckpts/model.ckpt", monitor='val_loss', save_best_only=True)
 stopper = EarlyStopping(monitor='val_acc', min_delta=0.0003, patience = 10)
 
-optimizer = Adam(learning_rate=1)
+lr_schedule = ExponentialDecay(initial_learning_rate=1.0,
+	decay_steps=10000, decay_rate=0.9)
+optimizer = Adam(learning_rate=lr_schedule)
 loss = Huber(delta=0.5, reduction="auto", name="huber_loss")
 model.compile(loss = loss, optimizer = optimizer, metrics=['accuracy'])
 model.fit(X_train, y_train, validation_split = 0.2, shuffle = True, 
