@@ -13,13 +13,15 @@ images = []
 measurements = []
 
 for line in lines:
-	image = mpimg.imread(line[0])
+	image = mpimg.imread("C:\\Users\\Dolphin48\\Jupyter Notebooks\\CarND-Behavioral-Cloning-P3-master\\data\\"+str(line[0]))
 	images.append(image)
 	measurements.append(float(line[3]))
 
 X_train = np.array(images)
 y_train = np.array(measurements)
 
+#print(X_train.shape)
+#print(y_train.shape)
 
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense, Flatten, Conv2D, Activation, MaxPooling2D, Dropout, GlobalAveragePooling2D
@@ -31,6 +33,8 @@ from tensorflow.keras.layers import Input, Lambda
 from tensorflow.keras.models import Model
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.losses import Huber
 
 """
 # INCEPTION_V3
@@ -88,6 +92,7 @@ model.fit(X_train, y_train, shuffle=True, validation_split=0.2, epochs=epochs,
 
 # CUSTOM
 
+
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
 sess = tf.Session(config=config)
@@ -98,6 +103,10 @@ model.add(MaxPooling2D(pool_size=(3,3)))
 model.add(Activation('relu'))
 
 model.add(Conv2D(filters=256, kernel_size=3, padding="valid"))
+model.add(MaxPooling2D(pool_size=(3,3)))
+model.add(Activation('relu'))
+
+model.add(Conv2D(filters=512, kernel_size=3, padding="valid"))
 model.add(MaxPooling2D(pool_size=(3,3)))
 model.add(Activation('relu'))
 model.add(Dropout(0.25))
@@ -114,12 +123,12 @@ model.add(Activation('relu'))
 model.add(Dropout(0.25))
 model.add(Dense(1))
 
-
-
 checkpoint = ModelCheckpoint(filepath="./ckpts/model.ckpt", monitor='val_loss', save_best_only=True)
 stopper = EarlyStopping(monitor='val_acc', min_delta=0.0003, patience = 10)
 
-model.compile(loss = 'mse', optimizer = 'Adam', metrics=['accuracy'])
+optimizer = Adam(learning_rate=1)
+loss = Huber(delta=0.5, reduction="auto", name="huber_loss")
+model.compile(loss = loss, optimizer = optimizer, metrics=['accuracy'])
 model.fit(X_train, y_train, validation_split = 0.2, shuffle = True, 
 			epochs = 100, callbacks=[checkpoint, stopper])
 
