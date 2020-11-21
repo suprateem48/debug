@@ -88,6 +88,10 @@ model.fit(X_train, y_train, shuffle=True, validation_split=0.2, epochs=epochs,
 
 # CUSTOM
 
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+sess = tf.Session(config=config)
+
 model = Sequential()
 model.add(Conv2D(input_shape=(160, 320, 3), filters=32, kernel_size=3, padding="valid"))
 model.add(MaxPooling2D(pool_size=(3,3)))
@@ -100,10 +104,17 @@ model.add(Dropout(0.25))
 
 model.add(Flatten())
 model.add(Dense(512))
-model.add(Dropout(0.25))
-
 model.add(Activation('relu'))
+model.add(Dropout(0.25))
+model.add(Dense(256))
+model.add(Activation('relu'))
+model.add(Dropout(0.25))
+model.add(Dense(128))
+model.add(Activation('relu'))
+model.add(Dropout(0.25))
 model.add(Dense(1))
+
+
 
 checkpoint = ModelCheckpoint(filepath="./ckpts/model.ckpt", monitor='val_loss', save_best_only=True)
 stopper = EarlyStopping(monitor='val_acc', min_delta=0.0003, patience = 10)
