@@ -150,8 +150,8 @@ model.add(Activation('relu'))
 model.add(Dropout(0.25))
 model.add(Dense(1))
 
-checkpoint = ModelCheckpoint(filepath="./ckpts/model.ckpt", monitor='MSE', save_best_only=True)
-stopper = EarlyStopping(monitor='MSE', min_delta=0.0003, patience = 10, mode='min')
+checkpoint = ModelCheckpoint(filepath="./ckpts/model.ckpt", monitor='val_loss', save_best_only=True)
+stopper = EarlyStopping(monitor='val_acc', min_delta=0.0003, patience = 10)
 
 lr_schedule = ExponentialDecay(initial_learning_rate=0.1, decay_steps=10000, decay_rate=0.9)
 optimizer = Adam(learning_rate=lr_schedule)
