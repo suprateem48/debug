@@ -1,6 +1,7 @@
 import csv
 import numpy as np
 import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
 
 lines = []
 
@@ -20,31 +21,57 @@ for line in lines:
 X_train = np.array(images)
 y_train = np.array(measurements)
 
+# Preprocess: Augment using flipping, Crop Images
+
+X_train_flipped = []
+for image in X_train:
+	X_train_flipped.append(np.fliplr(image))
+
+X_train_flipped = np.array(X_train_flipped)
+y_train_flipped = np.multiply(y_train , -1.0)
+
+X_train = np.append(X_train, X_train_flipped, axis = 0)
+y_train = np.append(y_train, y_train_flipped)
+
+X_train_bottom = []
+for image in X_train:
+	X_train_bottom.append(image[int(image.shape[0]/2.5):,:])
+
+
+X_train = np.array(X_train_bottom)
+
+#plt.imshow(X_train[0])
+#plt.show()
+#plt.imshow(X_train[-1])
+#plt.show()
+
 print(X_train.shape)
 print(y_train.shape)
 
+
 from tensorflow.keras import Sequential
-from tensorflow.keras.layers import Dense, Flatten, Conv2D, Activation, MaxPooling2D, Dropout, GlobalAveragePooling2D
+from tensorflow.keras.layers import Input, Lambda, Dense, Flatten, Conv2D, Activation, MaxPooling2D, Dropout, GlobalAveragePooling2D
 #from tensorflow.keras.applications import NASNetLarge
 from tensorflow.keras.applications.inception_v3 import InceptionV3, preprocess_input
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
-from tensorflow.keras.layers import Input, Lambda
 from tensorflow.keras.models import Model
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam, RMSprop
 from tensorflow.keras.losses import Huber
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
+from tensorflow.keras.metrics import RootMeanSquaredError
+
 
 """
 # INCEPTION_V3
 X_train = preprocess_input(X_train)
 inception = InceptionV3(weights='imagenet', include_top=False, input_shape=(299,299,3))
-inception.trainable = False
-#print(inception.summary())
+inception.trainable = True
+print(inception.summary())
 
-driving_input = Input(shape=(160,320,3))
+driving_input = Input(shape=(96,320,3))
 resized_input = Lambda(lambda image: tf.image.resize(image,(299,299)))(driving_input)
 inp = inception(resized_input)
 
@@ -59,12 +86,11 @@ model.compile(optimizer='Adam', loss='mse', metrics = ['accuracy'])
 checkpoint = ModelCheckpoint(filepath="./ckpts/model.ckpt", monitor='val_loss', save_best_only=True)
 stopper = EarlyStopping(monitor='val_acc', min_delta=0.0003, patience = 10)
 
-batch_size = 64
+batch_size = 32
 epochs = 100
 
 model.fit(x=X_train, y=y_train, shuffle=True, validation_split=0.2, epochs=epochs, 
 	batch_size=batch_size, verbose=1, callbacks=[checkpoint, stopper])
-
 """
 
 """
@@ -91,6 +117,7 @@ model.fit(X_train, y_train, shuffle=True, validation_split=0.2, epochs=epochs,
 	batch_size=batch_size, verbose=1, callbacks=[checkpoint, stopper])
 """
 
+
 # CUSTOM
 
 
@@ -99,7 +126,7 @@ config.gpu_options.allow_growth = True
 sess = tf.Session(config=config)
 
 model = Sequential()
-model.add(Conv2D(input_shape=(160, 320, 3), filters=32, kernel_size=3, padding="valid"))
+model.add(Conv2D(input_shape=(96, 320, 3), filters=32, kernel_size=3, padding="valid"))
 model.add(MaxPooling2D(pool_size=(3,3)))
 model.add(Activation('relu'))
 
@@ -110,7 +137,7 @@ model.add(Activation('relu'))
 model.add(Conv2D(filters=512, kernel_size=3, padding="valid"))
 model.add(MaxPooling2D(pool_size=(3,3)))
 model.add(Activation('relu'))
-model.add(Dropout(0.25))
+#model.add(Dropout(0.25))
 
 model.add(Flatten())
 model.add(Dense(512))
@@ -118,20 +145,20 @@ model.add(Activation('relu'))
 model.add(Dropout(0.25))
 model.add(Dense(256))
 model.add(Activation('relu'))
-model.add(Dropout(0.25))
 model.add(Dense(128))
 model.add(Activation('relu'))
 model.add(Dropout(0.25))
 model.add(Dense(1))
 
-checkpoint = ModelCheckpoint(filepath="./ckpts/model.ckpt", monitor='val_loss', save_best_only=True)
-stopper = EarlyStopping(monitor='val_acc', min_delta=0.0003, patience = 10)
+checkpoint = ModelCheckpoint(filepath="./ckpts/model.ckpt", monitor='MSE', save_best_only=True)
+stopper = EarlyStopping(monitor='MSE', min_delta=0.0003, patience = 10, mode='min')
 
-lr_schedule = ExponentialDecay(initial_learning_rate=1.0,
-	decay_steps=10000, decay_rate=0.9)
+lr_schedule = ExponentialDecay(initial_learning_rate=0.1, decay_steps=10000, decay_rate=0.9)
 optimizer = Adam(learning_rate=lr_schedule)
 loss = Huber(delta=0.5, reduction="auto", name="huber_loss")
-model.compile(loss = loss, optimizer = optimizer, metrics=['accuracy'])
+#optimizer = RMSprop()
+model.compile(loss = 'mse', optimizer = optimizer, metrics=['accuracy'])
+#model.compile(loss = 'MSE', optimizer = 'sgd', metrics=[RootMeanSquaredError()])
 model.fit(X_train, y_train, validation_split = 0.2, shuffle = True, 
 			epochs = 100, callbacks=[checkpoint, stopper])
 
