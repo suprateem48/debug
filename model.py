@@ -40,11 +40,6 @@ for image in X_train:
 
 X_train = np.array(X_train_bottom)
 
-#plt.imshow(X_train[0])
-#plt.show()
-#plt.imshow(X_train[-1])
-#plt.show()
-
 print(X_train.shape)
 print(y_train.shape)
 
@@ -150,18 +145,16 @@ model.add(Activation('relu'))
 model.add(Dropout(0.25))
 model.add(Dense(1))
 
-checkpoint = ModelCheckpoint(filepath="./ckpts/model.ckpt", monitor='val_loss', save_best_only=True)
-stopper = EarlyStopping(monitor='val_acc', min_delta=0.0003, patience = 10)
+checkpoint = ModelCheckpoint(filepath="./ckpts/model.h5", monitor='val_loss', save_best_only=True)
+stopper = EarlyStopping(monitor='val_loss', min_delta=0.0003, patience = 10)
 
 lr_schedule = ExponentialDecay(initial_learning_rate=0.1, decay_steps=10000, decay_rate=0.9)
 optimizer = Adam(learning_rate=lr_schedule)
 loss = Huber(delta=0.5, reduction="auto", name="huber_loss")
-#optimizer = RMSprop()
-model.compile(loss = 'mse', optimizer = optimizer, metrics=['accuracy'])
-#model.compile(loss = 'MSE', optimizer = 'sgd', metrics=[RootMeanSquaredError()])
+model.compile(loss = loss, optimizer = optimizer)
 model.fit(X_train, y_train, validation_split = 0.2, shuffle = True, 
 			epochs = 100, callbacks=[checkpoint, stopper])
 
 
-
+model.load_weights('./ckpts/model.h5')
 model.save('model.h5')
