@@ -2,8 +2,12 @@ import csv
 import numpy as np
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
+from sklearn.utils import shuffle
+from time import time
 
 lines = []
+
+t1=time()
 
 with open('./data/driving_log.csv') as csvfile:
 	reader = csv.reader(csvfile)
@@ -40,6 +44,10 @@ for image in X_train:
 
 X_train = np.array(X_train_bottom)
 
+#X_train, y_train = shuffle(X_train, y_train)
+
+#X_train = (X_train - X_train.mean()) / X_train.std()
+
 print(X_train.shape)
 print(y_train.shape)
 
@@ -63,7 +71,7 @@ from tensorflow.keras.metrics import RootMeanSquaredError
 # INCEPTION_V3
 X_train = preprocess_input(X_train)
 inception = InceptionV3(weights='imagenet', include_top=False, input_shape=(299,299,3))
-inception.trainable = True
+inception.trainable = False
 print(inception.summary())
 
 driving_input = Input(shape=(96,320,3))
@@ -71,23 +79,31 @@ resized_input = Lambda(lambda image: tf.image.resize(image,(299,299)))(driving_i
 inp = inception(resized_input)
 
 x = GlobalAveragePooling2D()(inp)
+
 x = Dense(512, activation = 'relu')(x)
+x = Dense(256, activation = 'relu')(x)
+x = Dropout(0.25)(x)
+x = Dense(128, activation = 'relu')(x)
+x = Dense(64, activation = 'relu')(x)
+x = Dropout(0.25)(x)
 result = Dense(1, activation = 'relu')(x)
 
-
+lr_schedule = ExponentialDecay(initial_learning_rate=0.1, decay_steps=100000, decay_rate=0.95)
+optimizer = Adam(learning_rate=lr_schedule)
+loss = Huber(delta=0.5, reduction="auto", name="huber_loss")
 model = Model(inputs = driving_input, outputs = result)
-model.compile(optimizer='Adam', loss='mse', metrics = ['accuracy'])
+model.compile(optimizer=optimizer, loss=loss)
 
-checkpoint = ModelCheckpoint(filepath="./ckpts/model.ckpt", monitor='val_loss', save_best_only=True)
-stopper = EarlyStopping(monitor='val_acc', min_delta=0.0003, patience = 10)
+checkpoint = ModelCheckpoint(filepath="./ckpts/model.h5", monitor='val_loss', save_best_only=True)
+stopper = EarlyStopping(monitor='val_loss', min_delta=0.0003, patience = 10)
 
 batch_size = 32
 epochs = 100
 
 model.fit(x=X_train, y=y_train, shuffle=True, validation_split=0.2, epochs=epochs, 
 	batch_size=batch_size, verbose=1, callbacks=[checkpoint, stopper])
-"""
 
+"""
 """
 # NASNET
 nasnet = NASNetLarge(weights='imagenet', include_top=False, input_shape = (331,331,3))
@@ -100,10 +116,10 @@ x = Dense(512, activation='relu')(x)
 predictions = Dense(1, activation='relu')(x)
 
 model = Model(inputs=nasnet_input, outputs=predictions)
-model.compile(optimizer='Adam', loss='mse', metrics = ['accuracy'])
+model.compile(optimizer='Adam', loss='mse')
 
-checkpoint = ModelCheckpoint(filepath="./ckpts/model.ckpt", monitor='val_loss', save_best_only=True)
-stopper = EarlyStopping(monitor='val_acc', min_delta=0.0003, patience = 10)
+checkpoint = ModelCheckpoint(filepath="./ckpts/model.h5", monitor='val_loss', save_best_only=True)
+stopper = EarlyStopping(monitor='val_loss', min_delta=0.0003, patience = 10)
 
 batch_size = 32
 epochs = 100
@@ -125,7 +141,7 @@ model.add(Conv2D(input_shape=(96, 320, 3), filters=32, kernel_size=3, padding="v
 model.add(MaxPooling2D(pool_size=(3,3)))
 model.add(Activation('relu'))
 
-model.add(Conv2D(filters=256, kernel_size=3, padding="valid"))
+model.add(Conv2D(filters=128, kernel_size=3, padding="valid"))
 model.add(MaxPooling2D(pool_size=(3,3)))
 model.add(Activation('relu'))
 
@@ -135,6 +151,10 @@ model.add(Activation('relu'))
 #model.add(Dropout(0.25))
 
 model.add(Flatten())
+model.add(Dense(2048))
+model.add(Activation('relu'))
+model.add(Dense(1024))
+model.add(Activation('relu'))
 model.add(Dense(512))
 model.add(Activation('relu'))
 model.add(Dropout(0.25))
@@ -148,13 +168,16 @@ model.add(Dense(1))
 checkpoint = ModelCheckpoint(filepath="./ckpts/model.h5", monitor='val_loss', save_best_only=True)
 stopper = EarlyStopping(monitor='val_loss', min_delta=0.0003, patience = 10)
 
-lr_schedule = ExponentialDecay(initial_learning_rate=0.1, decay_steps=10000, decay_rate=0.9)
+lr_schedule = ExponentialDecay(initial_learning_rate=0.1, decay_steps=100000, decay_rate=0.95)
 optimizer = Adam(learning_rate=lr_schedule)
 loss = Huber(delta=0.5, reduction="auto", name="huber_loss")
+t2 = time()
 model.compile(loss = loss, optimizer = optimizer)
-model.fit(X_train, y_train, validation_split = 0.2, shuffle = True, 
+model.fit(X_train, y_train, validation_split = 0.2, shuffle = True,
 			epochs = 100, callbacks=[checkpoint, stopper])
-
+print("Time taken to train: {:.2f}s".format(time()-t2))
 
 model.load_weights('./ckpts/model.h5')
 model.save('model.h5')
+
+print("Total time taken: {:.2f}s".format(time()-t1))
