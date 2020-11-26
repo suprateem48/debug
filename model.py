@@ -68,8 +68,8 @@ from tensorflow.keras.metrics import RootMeanSquaredError
 def inception_v3():
 
 	from tensorflow.keras.applications.inception_v3 import InceptionV3, preprocess_input
-	#import tensorflow.compat.v1 as tf
-	#tf.disable_v2_behavior()
+	import tensorflow.compat.v1 as tf
+	tf.disable_v2_behavior()
 
 	# INCEPTION_V3
 	global X_train, y_train
@@ -79,7 +79,7 @@ def inception_v3():
 	print(inception.summary())
 
 	driving_input = Input(shape=(96,320,3))
-	resized_input = Lambda(lambda image: tf.image.resize(image,(299,299)))(driving_input)
+	resized_input = Lambda(lambda image: __import__("tensorflow").image.resize(image,(299,299)))(driving_input)
 	inp = inception(resized_input)
 
 	x = GlobalAveragePooling2D()(inp)
@@ -163,7 +163,7 @@ def custom():
 
 	# CUSTOM
 	global X_train, y_train
-	
+
 	model = Sequential()
 	model.add(Conv2D(input_shape=(96, 320, 3), filters=32, kernel_size=3, padding="same"))
 	model.add(MaxPooling2D(pool_size=(3,3)))
