@@ -117,13 +117,15 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack)
    */
 
   double elapsed_time = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0;
-  ekf_.F_(0,2) = elapsed_time;
-  ekf_.F_(1, 3) = elapsed_time;
-  float noise_ax = 9;
-  float noise_ay = 9;
+  previous_timestamp_ = measurement_pack.timestamp_;
 
   VectorXd dt = VectorXd(5);
-  dt << 0, elapsed_time, pow(elapsed_time,2), pow(elapsed_time,3), pow(elapsed_time,4);
+  dt << 1, elapsed_time, pow(elapsed_time, 2), pow(elapsed_time, 3), pow(elapsed_time, 4);
+  ekf_.F_(0,2) = dt(1);
+  ekf_.F_(1, 3) = dt(1);
+  
+  float noise_ax = 9;
+  float noise_ay = 9;
 
   ekf_.Q_ = MatrixXd(4, 4);
   ekf_.Q_ << dt(4) * noise_ax / 4, 0, dt(3)* noise_ax / 2, 0,
