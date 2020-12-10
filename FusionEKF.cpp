@@ -85,8 +85,17 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack)
         float rho = measurement_pack.raw_measurements_(0);
         float phi = measurement_pack.raw_measurements_(1);
         float rho_dot = measurement_pack.raw_measurements_(2);
-        ekf_.x_(0) = rho * cos(phi);
-        ekf_.x_(1) = rho * sin(phi);
+        
+        float x = rho * cos(phi);
+        if (x < 0.0001)
+            ekf_.x_(0) = 0.0001;
+        else
+            ekf_.x_(0) = x;
+        float y = rho * sin(phi);
+        if (y < 0.0001)
+            ekf_.x_(1) = 0.0001;
+        else
+            ekf_.x_(1) = y;
         ekf_.x_(2) = rho_dot * cos(phi);
         ekf_.x_(3) = rho_dot * sin(phi);
     }
@@ -121,11 +130,10 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack)
 
   VectorXd dt = VectorXd(5);
   dt << 1, elapsed_time, pow(elapsed_time, 2), pow(elapsed_time, 3), pow(elapsed_time, 4);
-  ekf_.F_(0,2) = dt(1);
-  ekf_.F_(1, 3) = dt(1);
+  ekf_.F_(0,2) = ekf_.F_(1, 3) = dt(1);
   
-  float noise_ax = 9;
-  float noise_ay = 9;
+  float noise_ax = 9.0;
+  float noise_ay = 9.0;
 
   ekf_.Q_ = MatrixXd(4, 4);
   ekf_.Q_ << dt(4) * noise_ax / 4, 0, dt(3)* noise_ax / 2, 0,
@@ -161,6 +169,9 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack)
       ekf_.Update(measurement_pack.raw_measurements_);
 
   }
+
+  //update the previous timestamp
+  previous_timestamp_ = measurement_pack.timestamp_;
 
   // print the output
   cout << "x_ = " << ekf_.x_ << endl;
