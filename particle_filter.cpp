@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 #include <limits>
+#include <cassert>
 
 #include "helper_functions.h"
 
@@ -73,7 +74,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 
   for(int i=0; i<particles.size(); i++)
   {
-    if(fabs(yaw_rate) < 0.00001)
+    if(fabs(yaw_rate) < 0.000001)
     {
       particles[i].x += velocity*delta_t*cos(particles[i].theta);
       particles[i].y += velocity*delta_t*sin(particles[i].theta);
@@ -107,6 +108,7 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted, vector<Landm
   for(int i=0;i<observations.size();i++)
   {
     min_dist = std::numeric_limits<double>::max();
+    observations[i].id = -1;
 
     for(int j=0; j<predicted.size();j++)
     {
@@ -117,6 +119,7 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted, vector<Landm
         observations[i].id = predicted[j].id;
       }
     }
+    assert(observations[i].id != -1);
   }
 
 }
@@ -164,6 +167,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         landmarks.push_back(lm);
       }
     }
+
+    assert(!landmarks.empty());
 
     dataAssociation(landmarks, transformed_obs);
 
