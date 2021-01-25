@@ -51,7 +51,8 @@ int main() {
     map_waypoints_dy.push_back(d_y);
   }
 
-  
+  int lane = 1;
+  double ref_vel = 49.5;
 
   h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,
                &map_waypoints_dx,&map_waypoints_dy]
@@ -99,8 +100,45 @@ int main() {
            * TODO: define a path made up of (x,y) points that the car will visit
            *   sequentially every .02 seconds
            */
-          int lane = 1;
-  		  double ref_vel = 49.5;
+          
+
+          if(prev_size > 0)
+            car_s = end_path_s;
+
+          bool too_close = false;
+
+          // Find ref_v to use
+          for(int i = 0; i< sensor_fusion.size(); i++)
+          {
+            // The car is in my lane
+            float d = sensor_fusion[i][6];
+
+            if(d < (2 + 4*lane + 2) && d > (2 + 4*lane - 2))
+            {
+              double vx = sensor_fusion[i][3];
+              double vy = sensor_fusion[i][4];
+              double check_speed = sqrt(pow(vx,2) + pow(vy,2));
+              double check_car_s = sensor_fusion[i][5];
+
+              // Check the car's future position in its path
+              check_car_s += (double)prev_size * 0.02 * check_speed;
+
+              // If car is dangerously close, slow down or flag lane change
+              if((check_car_s > car_s) && (check_car_s - car_s) < 30)
+              {
+                ref_vel = 29.5;
+              }
+            }
+
+
+
+          }
+
+
+
+
+
+          
           
           vector<double> ptsx;
           vector<double> ptsy;
@@ -144,9 +182,9 @@ int main() {
           }
 
           // In Frenet add evenly 30m spaced points ahead of the starting reference.
-          vector<double> next_wp0 = getXY(car_s + 30, (2+4*lane), map_waypoints_s, map_waypoints_x,map_waypoints_y);
-          vector<double> next_wp1 = getXY(car_s + 60, (2+4*lane), map_waypoints_s, map_waypoints_x,map_waypoints_y);
-          vector<double> next_wp2 = getXY(car_s + 90, (2+4*lane), map_waypoints_s, map_waypoints_x,map_waypoints_y);
+          vector<double> next_wp0 = getXY(car_s + 30, 2 + 4*lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+          vector<double> next_wp1 = getXY(car_s + 60, 2 + 4*lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+          vector<double> next_wp2 = getXY(car_s + 90, 2 + 4*lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
 
           ptsx.push_back(next_wp0[0]);
           ptsx.push_back(next_wp1[0]);
@@ -184,15 +222,15 @@ int main() {
           }
 
           // Calculate how to break up the spline points so that we travel at our desired reference velocity
-          double target_x = 30;
+          double target_x = 30.0;
           double target_y = s(target_x);
           double target_dist = sqrt(pow(target_x,2) + pow(target_y,2));
           double x_add_on = 0;
 
           // Fill up the rest of the path planner after filling it with previous points, we aim to output 50 pts
-          for(int i=1; i <= 50 - previous_path_x.size(); i++)
+          for(int i=1; i < 50 - previous_path_x.size(); i++)
           {
-          	double N = target_dist/(0.2*ref_vel/2.24);
+          	double N = target_dist/(0.02*ref_vel/2.24);
           	double x_point = x_add_on + target_x / N;
           	double y_point = s(x_point);
 
