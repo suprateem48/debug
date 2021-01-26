@@ -52,10 +52,12 @@ int main() {
   }
 
   int lane = 1;
-  double ref_vel = 49.5;
+  double ref_vel = 0;
+  const double MAX_SPEED = 49.5;
+  const double MAX_ACC = 0.224;
 
   h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,
-               &map_waypoints_dx,&map_waypoints_dy]
+               &map_waypoints_dx,&map_waypoints_dy, &ref_vel, &lane, &MAX_ACC, &MAX_SPEED]
               (uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
@@ -105,35 +107,82 @@ int main() {
           if(prev_size > 0)
             car_s = end_path_s;
 
-          bool too_close = false;
+          bool car_ahead = false;
+          bool car_left = false;
+          bool car_right = false;
 
           // Find ref_v to use
           for(int i = 0; i< sensor_fusion.size(); i++)
           {
             // The car is in my lane
             float d = sensor_fusion[i][6];
+            float s = sensor_fusion[i][5];
+            double vx = sensor_fusion[i][3];
+            double vy = sensor_fusion[i][4];
 
+            if(d < 0)
+              continue;
+
+            double speed = sqrt(pow(vx,2) + pow(vy,2));
+
+            // Check the car's future position in its path
+            s += (double)prev_size * 0.02 * speed;
+
+            // Check if car is too close
             if(d < (2 + 4*lane + 2) && d > (2 + 4*lane - 2))
             {
-              double vx = sensor_fusion[i][3];
-              double vy = sensor_fusion[i][4];
-              double check_speed = sqrt(pow(vx,2) + pow(vy,2));
-              double check_car_s = sensor_fusion[i][5];
-
-              // Check the car's future position in its path
-              check_car_s += (double)prev_size * 0.02 * check_speed;
 
               // If car is dangerously close, slow down or flag lane change
-              if((check_car_s > car_s) && (check_car_s - car_s) < 30)
+              if((s > car_s) && (s - car_s) < 30)
               {
-                ref_vel = 29.5;
+                car_ahead = true;
               }
             }
 
+            // Check if left shift is viable
+            if(d < (4 + 4*(lane - 1)) && d > (4 * (lane - 1)))
+            {
+              auto s_diff = s - car_s;
+              if ((s_diff > -5) && (s_diff < 10))
+              {
+                car_left = true;
+              }
+            }
 
+            // Check if right shift is viable
+            if(d < (4 + 4*(lane + 1)) && d > (4 * (lane + 1)))
+            {
+              auto s_diff = s - car_s;
+              if ((s_diff > -5) && (s_diff < 10))
+              {
+                car_right = true;
+              }
+            }
 
           }
 
+          if (car_ahead)
+          {
+
+            if (!car_left && lane > 0)
+              lane -= 1;
+            else if (!car_right && lane < 2)
+              lane += 1;
+            else
+              ref_vel -= MAX_ACC;
+
+          }
+          else
+          {
+            if((lane == 0 && !car_right) || (lane == 2 && !car_left))
+            {
+              lane = 1;
+            }
+
+            if (ref_vel < MAX_SPEED)
+              ref_vel += MAX_ACC;
+          }
+          
 
 
 
