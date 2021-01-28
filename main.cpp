@@ -111,7 +111,7 @@ int main() {
           bool car_left = false;
           bool car_right = false;
 
-          // Find ref_v to use
+          // Sensor Fusion: Detect position of other vehicles
           for(int i = 0; i< sensor_fusion.size(); i++)
           {
             // The car is in my lane
@@ -129,7 +129,7 @@ int main() {
             s += (double)prev_size * 0.02 * speed;
 
             // Check if car is too close
-            if(d < (2 + 4*lane + 2) && d > (2 + 4*lane - 2))
+            if(d < (4 + 4*lane) && d > (4*lane))
             {
 
               // If car is dangerously close, slow down or flag lane change
@@ -143,7 +143,7 @@ int main() {
             if(d < (4 + 4*(lane - 1)) && d > (4 * (lane - 1)))
             {
               auto s_diff = s - car_s;
-              if ((s_diff > -5) && (s_diff < 10))
+              if ((s_diff > -10) && (s_diff < 20))
               {
                 car_left = true;
               }
@@ -153,7 +153,7 @@ int main() {
             if(d < (4 + 4*(lane + 1)) && d > (4 * (lane + 1)))
             {
               auto s_diff = s - car_s;
-              if ((s_diff > -5) && (s_diff < 10))
+              if ((s_diff > -10) && (s_diff < 20))
               {
                 car_right = true;
               }
@@ -271,7 +271,7 @@ int main() {
           }
 
           // Calculate how to break up the spline points so that we travel at our desired reference velocity
-          double target_x = 30.0;
+          double target_x = 40.0;
           double target_y = s(target_x);
           double target_dist = sqrt(pow(target_x,2) + pow(target_y,2));
           double x_add_on = 0;
