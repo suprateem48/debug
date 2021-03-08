@@ -47,7 +47,7 @@ class Controller(object):
         
         current_time = rospy.get_time()
         sample_time = current_time - self.last_time
-        self.last_time = current_time()
+        self.last_time = current_time
         
         throttle = self.throttle_controller.step(vel_error, sample_time)
         brake = 0
