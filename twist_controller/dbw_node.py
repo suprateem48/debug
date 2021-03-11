@@ -91,11 +91,14 @@ class DBWNode(object):
             # if <dbw is enabled>:
             #   self.publish(throttle, brake, steer)
             if not None in (self.current_vel, self.linear_vel, self.angular_vel):
+                rospy.loginfo("Checkpoint 1: Current_vel, Linear_vel and Angular_vel are not None")
                 self.throttle, self.brake, self.steering = self.controller.control(self.current_vel,
                                                                                    self.dbw_enabled,
                                                                                    self.linear_vel,
                                                                                    self.angular_vel)
+                rospy.loginfo("Checkpoint 2: Back from Controller.control().\nthrottle : {}\nbrake : {}\nsteering:{}".format(self.throttle, self.brake, self.steering))
             if self.dbw_enabled:
+                rospy.loginfo("Checkpoint 3: Detected dbw_enabled. Publishing controls.")
                 self.publish(self.throttle, self.brake, self.steering)
                 
             rate.sleep()
@@ -116,17 +119,20 @@ class DBWNode(object):
         tcmd.pedal_cmd_type = ThrottleCmd.CMD_PERCENT
         tcmd.pedal_cmd = throttle
         self.throttle_pub.publish(tcmd)
+        rospy.loginfo("Checkpoint 4.1: Published throttle: {}".format(tcmd))
 
         scmd = SteeringCmd()
         scmd.enable = True
         scmd.steering_wheel_angle_cmd = steer
         self.steer_pub.publish(scmd)
+        rospy.loginfo("Checkpoint 4.2: Published steering: {}".format(scmd))
 
         bcmd = BrakeCmd()
         bcmd.enable = True
         bcmd.pedal_cmd_type = BrakeCmd.CMD_TORQUE
         bcmd.pedal_cmd = brake
         self.brake_pub.publish(bcmd)
+        rospy.loginfo("Checkpoint 4.3: Published brake: {}".format(ccmd))
 
 
 if __name__ == '__main__':
