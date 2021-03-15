@@ -73,7 +73,7 @@ class WaypointUpdater(object):
         
         return closest_index
         
-    def publish_waypoints(self, closest_waypoint_index):
+    def publish_waypoints(self):
         lane = self.generate_lane()
         #lane.header = self.base_waypoints.header
         #lane.waypoints = self.base_waypoints.waypoints[closest_waypoint_index : closest_waypoint_index + LOOKAHEAD_WPS]
@@ -85,7 +85,7 @@ class WaypointUpdater(object):
         farthest_index = closest_index + LOOKAHEAD_WPS
         base_waypoints = self.base_lane.waypoints[closest_index : farthest_index]
 
-        if self.stopline_wp_idx == -1 or self.stopline_wp_idx >= farthest_index:
+        if self.stopline_wp_idx == -1 or (self.stopline_wp_idx >= farthest_index):
         	lane.waypoints = base_waypoints
         else:
         	lane.waypoints = self.decelerate_waypoints(base_waypoints, closest_index)
