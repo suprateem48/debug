@@ -38,7 +38,7 @@ class WaypointUpdater(object):
         # TODO: Add other member variables you need below
         self.base_lane = None
         self.pose = None
-        self.base_waypoints = None
+        #self.base_waypoints = None
         self.waypoints2D = None
         self.waypoint_tree = None
         self.stopline_wp_idx = -1
@@ -49,7 +49,7 @@ class WaypointUpdater(object):
     def loop(self):
         rate = rospy.Rate(50)
         while not rospy.is_shutdown():
-            if self.pose and self.base_waypoints and self.waypoint_tree and self.base_lane:
+            if self.pose and self.base_lane:
                 #closest_waypoint_index = self.get_closest_waypoint_id()
                 self.publish_waypoints()
             rate.sleep()
@@ -83,9 +83,9 @@ class WaypointUpdater(object):
         lane = Lane()
         closest_index = self.get_closest_waypoint_id()
         farthest_index = closest_index + LOOKAHEAD_WPS
-        base_waypoints = self.base_lane.waypoints[closest_index:farthest_index]
+        base_waypoints = self.base_lane.waypoints[closest_index : farthest_index]
 
-        if self.stopline_wp_idx == 1 or self.stopline_wp_idx >= farthest_index:
+        if self.stopline_wp_idx == -1 or self.stopline_wp_idx >= farthest_index:
         	lane.waypoints = base_waypoints
         else:
         	lane.waypoints = self.decelerate_waypoints(base_waypoints, closest_index)
@@ -103,7 +103,7 @@ class WaypointUpdater(object):
     		vel = math.sqrt(2 * MAX_DECEL * dist)
     		if vel < 1.0:
     			vel = 0.0
-    		p.twist.twist.linear.x = min(vel, wp.twist.twist.linear.x)
+    		p.twist.twist.linear.x = min(vel, waypoint.twist.twist.linear.x)
     		temp.append(p)
 
     	return temp
