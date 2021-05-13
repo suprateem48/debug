@@ -35,8 +35,7 @@ def destroy(id:int, db:Session=Depends(get_db)):
 # Update a Blog
 @app.put('/blog/{id}', status_code=status.HTTP_202_ACCEPTED)
 def update(id:int, blog:schemas.Blog, db:Session = Depends(get_db)):
-	db.query(models.Blog).filter(models.Blog.id == id).\
-		update({'title':'updated title'}, synchronize_session=False)
+	db.query(models.Blog).filter(models.Blog.id == id).update(blog)
 	db.commit()
 	return f'Blog {id} updated successfully.'
 
