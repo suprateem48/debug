@@ -28,14 +28,23 @@ def create(blog:schemas.Blog, db:Session = Depends(get_db)):
 
 @app.delete('/blogs/{id}', status_code=status.HTTP_204_NO_CONTENT)
 def destroy(id:int, db:Session=Depends(get_db)):
-	db.query(models.Blog).filter(models.Blog.id == id).delete(synchronize_session=False)
+	blog = db.query(models.Blog).filter(models.Blog.id == id)
+	if not blog.first():
+		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
+							detail=f'Blog {id} not found.')
+	blog.delete(synchronize_session=False)
 	db.commit()
 	return {'detail':f'Blog {id} has been deleted.'}
 
 # Update a Blog
+
 @app.put('/blog/{id}', status_code=status.HTTP_202_ACCEPTED)
 def update(id:int, blog:schemas.Blog, db:Session = Depends(get_db)):
-	db.query(models.Blog).filter(models.Blog.id == id).update(blog)
+	blog_ = db.query(models.Blog).filter(models.Blog.id == id)
+	if not blog_.first():
+		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
+							detail=f'Blog {id} not found.')
+	blog_.update(blog, synchronize_session=False)
 	db.commit()
 	return f'Blog {id} updated successfully.'
 
